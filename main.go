@@ -36,6 +36,14 @@ type Task struct {
 	description string
 }
 
+func (t *Task) Next() {
+	if t.status == done {
+		t.status = todo
+	} else {
+		t.status++
+	}
+}
+
 func (t Task) FilterValue() string {
 	return t.title
 }
@@ -58,6 +66,18 @@ type Model struct {
 
 func NewModel() *Model {
 	return &Model{}
+}
+
+func (m *Model) MoveToNext() tea.Msg {
+	selectedItem := m.lists[m.focused].SelectedItem()
+	selectedTask := selectedItem.(Task)
+	selectedItemIndex := m.lists[m.focused].Index()
+	m.lists[selectedTask.status].RemoveItem(selectedItemIndex)
+	// this will increment the selectedTask's status
+	selectedTask.Next()
+	endIndexOfNextList := len(m.lists[selectedTask.status].Items()) - 1
+	m.lists[selectedTask.status].InsertItem(endIndexOfNextList, list.Item(selectedTask))
+	return nil
 }
 
 func (m *Model) Next() {
@@ -123,6 +143,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Prev()
 		case "right", "l":
 			m.Next()
+		case "enter":
+			return m, m.MoveToNext
 		}
 	}
 
